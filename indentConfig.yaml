@@ -28,7 +28,6 @@ lookForAlignDelims:
         delims: 1
 
 indentAfterItems:
-    itemize: 1
     enumerate: 1
     description: 1
     list: 1
@@ -39,7 +38,7 @@ noAdditionalIndent:
 
 modifyLineBreaks:
     textWrapOptions:
-        columns: 80
+        columns: 100
         perCodeBlockBasis: 1
         all: 1
     removeParagraphLineBreaks:
