@@ -1,0 +1,46 @@
+verbatimEnvironments:
+    verbatim: 1
+    lstlisting: 1
+    lstinline: 1
+
+defaultIndent: "\t"
+
+removeTrailingWhitespace:
+    beforeProcessing: 0
+    afterProcessing: 1
+
+lookForAlignDelims:
+    tabular:
+        delims: 1
+        alignDoubleBackSlash: 1
+        spacesBeforeDoubleBackSlash: 1
+        multiColumnGrouping: 0
+        alignRowsWithoutMaxDelims: 1
+        spacesBeforeAmpersand: 1
+        spacesAfterAmpersand: 1
+        justification: left
+        alignFinalDoubleBackSlash: 0
+        dontMeasure: 0
+        delimiterRegEx: ’(?<!\\)(&)’
+        delimiterJustification: left
+        lookForChildCodeBlocks: 1
+    tabularx:
+        delims: 1
+
+indentAfterItems:
+    itemize: 1
+    enumerate: 1
+    description: 1
+    list: 1
+
+modifyLineBreaks:
+    textWrapOptions:
+        columns: 80                     # number of columns
+        beforeFindingChildCodeBlocks: 1 # wrap *before* finding child code blocks
+        afterHeading: 1                 #   after headings
+        items: 1                        #   within items
+    removeParagraphLineBreaks:          # remove line breaks within paragraphs
+        mainDocument: 1
+        afterHeading: 1
+        items: 1
+        beforeTextWrap: 1
