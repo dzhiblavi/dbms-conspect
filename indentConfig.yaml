@@ -33,14 +33,15 @@ indentAfterItems:
     description: 1
     list: 1
 
+noAdditionalIndent:
+    equation: 1
+    multiline: 1
+
 modifyLineBreaks:
     textWrapOptions:
-        columns: 80                     # number of columns
-        beforeFindingChildCodeBlocks: 1 # wrap *before* finding child code blocks
-        afterHeading: 1                 #   after headings
-        items: 1                        #   within items
-    removeParagraphLineBreaks:          # remove line breaks within paragraphs
-        mainDocument: 1
-        afterHeading: 1
-        items: 1
+        columns: 80
+        perCodeBlockBasis: 1
+        all: 1
+    removeParagraphLineBreaks:
+        all: 1
         beforeTextWrap: 1
