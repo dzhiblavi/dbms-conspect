@@ -32,10 +32,6 @@ indentAfterItems:
     description: 1
     list: 1
 
-noAdditionalIndent:
-    equation: 1
-    multiline: 1
-
 modifyLineBreaks:
     textWrapOptions:
         columns: 100
