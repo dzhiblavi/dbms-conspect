@@ -1,0 +1,5 @@
+Before committing:
+
+```console
+$ ./sync
+```
