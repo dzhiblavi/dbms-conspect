@@ -1,5 +1,8 @@
 #!/bin/bash
 set -eux
 
+root=$(pwd)
+
 git config --local pull.rebase true
-git config core.hooksPath hooks
+
+ln -sf "$root/hooks/pre-commit" "$root/.git/hooks/pre-commit"
