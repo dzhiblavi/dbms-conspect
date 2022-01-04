@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eux
+
+git config --local pull.rebase true
+git config core.hooksPath hooks
