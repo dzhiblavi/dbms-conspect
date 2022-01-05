@@ -1,0 +1,248 @@
+\subsection{Секционирование}
+
+\begin{definition}
+	\textit{Секционирование} -- разбиение таблицы на фрагменты, хранящиеся в разных местах (в
+	случае разных компьютеров называется \textit{шардинг}). Используется для увеличения скорости
+	чтения за счет параллельного обращения.
+\end{definition}
+
+Различают два вида секционирования: \textbf{вертикальное} и \textbf{горизонтальное}.
+
+\subsubsection{Вертикальное секционирование}
+
+Таблица разбивается по столбцам. Возможно при корректности соединения (5 НФ). Реализуется
+посредством проекции и соединения.
+
+\paragraph{Преимущества}
+
+\begin{itemize}
+	\item Отделение данных, к которым часто обращаются, от тех, к которым обращаются редко.
+	\item Защита информации.
+	\item Поддерживается во многих СУБД для \texttt{CLOB} и \texttt{BLOB}.
+\end{itemize}
+
+\paragraph{Недостатки}
+
+\begin{itemize}
+	\item Нет специальной поддержки в СУБД. Считается, что проекции и соединения для указанных целей
+	      достаточно.
+	\item Зависимость от представления (соединенных данных). Некоторые СУБД накладывают ограничения на
+	      представления, например, запрещают создавать внешние ключи на них.
+	\item Необходимость обновляемых представлений также не гарантирована.
+\end{itemize}
+
+\paragraph{Пример}
+
+Рассмотрим исходную таблицу.
+
+\begin{lstlisting}
+    Students(SId, GId, FirstName, LastName, PassSeries,
+        PassNo, PassIssued, Photo)
+\end{lstlisting}
+
+Разобьем ее на секции.
+
+\begin{lstlisting}
+    StudentData(SId, GId, FirstName, LastName)
+    StudentPasses(SId, PassSeries, PassNo, PassIssued)
+    StudentPhotos(SId, Photo)
+\end{lstlisting}
+
+Обращение к фото (\texttt{StudentPhotos}) происходит значительно реже, чем к основным данным
+студента (\texttt{StudentData}). Также таблица с персональными данными (\texttt{StudentPasses})
+требует повышенных прав доступа. Таким образом, были использованы все преимущества вертикального
+секционирования.
+
+Создадим также представление для работы с исходной таблицей.
+
+\begin{lstlisting}[language=SQL]
+    create view Students as StudentData
+        natural join StudentPasses
+        natural join StudentPhotos;
+\end{lstlisting}
+
+\subsubsection{Горизонтальное секционирование}
+
+Таблица разделяется по строкам. Корректно, когда каждая строка попадает ровно в одну секцию.
+Реализуется посредством фильтрации и объединения.
+
+\paragraph{Преимущества}
+
+\begin{itemize}
+	\item Отделение данных, к которым часто обращаются, от тех, к которым обращаются редко. Например, чаще
+	      всего старые данные нужны реже новых.
+	\item При уменьшении размера секции уменьшается размер индекса.
+	\item Требуется встроенная поддержка.
+	\item Прозрачно для пользователя.
+\end{itemize}
+
+\paragraph{Недостатки}
+
+\begin{itemize}
+	\item В некоторых случаях может приводить к замедлению работы.
+\end{itemize}
+
+\paragraph{Пример}
+
+Рассмотрим исходную таблицу.
+
+\begin{lstlisting}
+    Points(SId, CId, Points, Date)
+\end{lstlisting}
+
+Введем секционирование по Date:
+
+\begin{itemize}
+	\item $\texttt{Points}_{2021-1}$ -- оценки за весенний семестр 2021,
+	\item $\texttt{Points}_{2021-2}$ -- оценки за осенний семестр 2021,
+	\item $\texttt{Points}_{2020-1}$ -- оценки за весенний семестр 2020,
+	\item \ldots
+\end{itemize}
+
+\paragraph{Методы секционирования}
+
+\begin{itemize}
+	\item \textbf{Простые}.
+	      \begin{itemize}
+		      \item По диапазонам значений,
+		      \item По значениям,
+		      \item По хешу.
+	      \end{itemize}
+	\item \textbf{По выражению}. Поддерживаются реже.
+	\item \textbf{Составные}.
+	      \begin{itemize}
+		      \item По диапазонам и хешу,
+		      \item \ldots
+	      \end{itemize}
+\end{itemize}
+
+\paragraph{Пример} Секционирование по диапазонам.
+
+\begin{lstlisting}[language=SQL]
+    create table Points(...)
+    partition by range(Date) (
+        partition pHist values less than '2021-02-01',
+        partition p2021s1 values less than '2021-07-01',
+        partition p2021s2 values less than '2022-02-01',
+        partition pFuture values less than maxvalue
+    );
+\end{lstlisting}
+
+\texttt{maxvalue} -- максимальное теоретическое значение.
+
+\paragraph{Пример} Секционирование по значениям.
+
+Чаще используется для перечислений.
+
+\begin{lstlisting}[language=SQL]
+    create table Points(...)
+    partition by list(Term) (
+        partition pHist values in ('t2020-1', 't2020-2', ...),
+        partition p2021s1 values in ('t2021-1'),
+        partition p2021s2 values in ('t2021-2'),
+        partition pFuture values in ('t2022-1')
+    );
+\end{lstlisting}
+
+При таком подходе секция может быть не определена при записи.
+
+\begin{lstlisting}[language=SQL]
+    insert into Points (Term) values ('t2001-1');
+\end{lstlisting}
+
+При чтении из несуществующей секции будет получен пустой результат.
+
+\paragraph{Пример} Секционирование по хешу.
+
+Хешируется по набору столбцов. Работает эффективно при хорошей и быстрой хеш-функции.
+
+\begin{lstlisting}[language=SQL]
+    create table Points(...)
+    partition by hash(Term)
+    partitions 4;
+\end{lstlisting}
+
+\paragraph{Пример} Секционирование по выражению.
+
+Зависит от определенной в БД функции.
+
+\begin{lstlisting}[language=SQL]
+    create table Points(...)
+    partition by year(Date) (
+        partition pHist values less than 2021,
+        partition pCurrent values less than 2022,
+        partition pFuture values less than maxvalue
+    );
+\end{lstlisting}
+
+\paragraph{Пример} Составное секционирование.
+
+Секции разбиваются на подсекции, возможно, по разным атрибутам.
+
+\begin{lstlisting}[language=SQL]
+    create table Points(...)
+    partition by year(Date)
+    subpartition by hash(Term) (
+        partition History values less than 2021 (
+            subpartition History1, subpartition History2
+        ),
+        partition Current values less than 2022 (
+            subpartition Current1, subpartition Current2
+        )
+    );
+\end{lstlisting}
+
+\paragraph{Управление секциями}
+
+\begin{remark}
+	Данные команды не входят в стандарт SQL, поэтому синтаксис может отличаться в зависимости от СУБД.
+\end{remark}
+
+\textbf{Удаление секции}
+
+\begin{lstlisting}[language=SQL]
+    alter table <table> drop partition <section>;
+\end{lstlisting}
+
+\textbf{Разбиение секции}
+
+\begin{lstlisting}[language=SQL]
+    alter table <table> reorganize <section> into (...);
+\end{lstlisting}
+
+\textbf{Перехеширование}
+
+\begin{lstlisting}[language=SQL]
+    -- Добавить число разделов
+    alter table <table> add partition <count>;
+    -- Удалить число разделов
+    alter table <table> coalesce partition <count>;
+\end{lstlisting}
+
+\begin{proposition}
+	Оптимизатор владеет информацией о секциях. В частности, где какие данные находятся.
+\end{proposition}
+
+\paragraph{Пример}
+
+\begin{lstlisting}[language=SQL]
+    select * from Points where Date = '2021-12-06
+\end{lstlisting}
+
+При таком запросе выборка будет производиться только из секции 2021 года.
+
+\paragraph{Секционирование и индексы}
+
+Можно определить следующие индексы:
+
+\begin{itemize}
+	\item \textbf{Локальный} -- один на секцию. Ускорение при выборе секций.
+	\item \textbf{Глобальный} -- один на таблицу. Также ускорение при выборе секций.
+	\item \textbf{Секционированный} -- разбит на секции. Обеспечивает согласованное
+	      секционирование (могут помочь при склеивании секций).
+\end{itemize}
+
+\paragraph{Секционирование и ключи}
+
+Лучше всего, если множество столбцов, по которым идет секционирование, образует подключ. Еще лучше
+-- подключ всех ключей (например, если внешние ключи на таблицу ссылаются на разные ее ключи).
