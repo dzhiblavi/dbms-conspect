@@ -55,6 +55,7 @@ else
         find . -type f -path './src/*' -name '*.tex' -exec latexindent -w -m -s -l=indentConfig.yaml {} \;
     } 2> /dev/null
     find . -type f -name '*.bak*' -delete
+    git add .
 fi
 
 
