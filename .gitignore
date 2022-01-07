@@ -10,3 +10,4 @@
 **/*.undodir
 **/*.bak*
 **/*.DS_Store
+**/*.dvi
