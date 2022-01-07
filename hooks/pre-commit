@@ -56,3 +56,16 @@ else
     } 2> /dev/null
     find . -type f -name '*.bak*' -delete
 fi
+
+if ! command -v latexmk; then
+    echo "latexmk could not be found. Run with --no-verify to skip the check."
+    exit 1
+else
+    # Rebuild
+    latexmk -cd -pdf "src/source.tex" < /dev/null 2> /dev/null
+
+    # Move to out directory
+    mv "src/source.pdf" "out/source.pdf"
+fi
+
+git add .
