@@ -9,3 +9,5 @@
 **/*.synctex.gz
 **/*.undodir
 **/*.bak*
+**/*.DS_Store
+**/*.dvi

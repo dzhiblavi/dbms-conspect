@@ -26,4 +26,6 @@ for slides in "${SLIDES[@]}"; do
     link="$LINK/$slides.xhtml"
     mkdir "$slides" || true
     wget -nd -r -P "$slides" -A svg "$link"
+    wget -nd -r -P "$slides" -A png "$link"
+    find "$slides" -name 'robots.txt.*' -delete
 done
