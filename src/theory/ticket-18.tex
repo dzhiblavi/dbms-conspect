@@ -1,0 +1,259 @@
+\subsection{Исчисление кортежей и его реляционная полнота}
+
+\subsubsection{Реляционное исчисление}
+
+\begin{definition}
+	\textit{Реляционное исчисление} -- декларативный язык для работы с отношениями.
+\end{definition}
+
+В отличие от реляционной алгебры, в реляционном исчислении описывается не то, как построить запрос,
+а свойства результата, который ожидаем получить.
+
+Выделяют два вида реляционного исчисления: \textbf{исчисление кортежей} и \textbf{исчисление доменов}.
+
+\paragraph{Части запроса}
+
+\begin{itemize}
+	\item \textbf{Определение переменных},
+	\item \textbf{Определение свойств результата}.
+\end{itemize}
+
+\begin{lstlisting}[language=SQL]
+    <variables definition>
+    select <attributes list>
+    from <variables>
+    where <condition>
+\end{lstlisting}
+
+\paragraph{Пример}
+
+Рассмотрим запрос, для получения идентификаторов студентов, обучающихся в группе
+\texttt{M34371}.
+
+Запрос в реляционной алгебре:
+
+\[
+	\pi_{SId}(\sigma_{Name = M34371} (Students \bowtie Groups))
+\]
+
+Запрос в реляционном исчислении:
+
+\begin{lstlisting}[language=SQL, mathescape=true]
+    select S.SId from S
+    where $\exists$ G (S.GId = G.GId $\wedge$ G.Name = 'M34371')
+\end{lstlisting}
+
+\subsubsection{Исчисление кортежей}
+
+В качестве переменных выступают кортежи. Тип переменной определяется именем и типами атрибутов, а
+также набором значений. Заметим, что это есть отношение.
+
+\paragraph{Синтаксис}
+
+Указывается имя и \textit{отношение}.
+
+\begin{lstlisting}
+    <Variable> :: <Relation>
+\end{lstlisting}
+
+\paragraph{Операции с отношениями}
+
+\begin{itemize}
+	\item \textbf{Огранричение}
+	      \begin{lstlisting}[language=SQL]
+    <Relation> where <Condition>
+        \end{lstlisting}
+	\item \textbf{Объединение}
+	      \begin{lstlisting}[language=SQL]
+    <Relation 1>, <Relation 2>
+        \end{lstlisting}
+\end{itemize}
+
+\paragraph{Примеры}
+
+Рассмотренное выше отношение \texttt{G4} можно выразить иначе:
+
+\begin{lstlisting}[language=SQL, mathescape=true]
+    G4 :: Groups where Name = 'M34351',
+          Groups where Name = 'M34371',
+          Groups where Name = 'M34391'
+\end{lstlisting}
+
+\paragraph{Условия}
+
+Условия во многом аналогичны условиям из реляционной алгебры. Дополнительно вводятся кванторы.
+
+\begin{itemize}
+	\item \textbf{Простые условия}.
+	      \begin{itemize}
+		      \item Сравнение атрибутов с константами
+		            \begin{lstlisting}[language=SQL, mathescape=true]
+    S.Name = 'John'
+    S.Id $<$ 5
+                \end{lstlisting}
+		      \item Сравнение атрибутов между собой
+		            \begin{lstlisting}[language=SQL, mathescape=true]
+    S.Id $\geq$ G.Id
+                \end{lstlisting}
+		      \item Сравнение с применением формул
+		            \begin{lstlisting}[language=SQL, mathescape=true]
+    length(S.FirstName) = length(S.LastName) + 3
+                \end{lstlisting}
+	      \end{itemize}
+	\item \textbf{Составные условия}. Вводятся логические связки: $\vee$, $\wedge$,
+	      $\neg$.
+	      \begin{lstlisting}[language=SQL, mathescape=true]
+    G where Name = 'M34371' $\vee$ Name = 'M34391'
+    S where FirstName = 'John' $\wedge$ LastName <> 'Smith'
+        \end{lstlisting}
+	\item \textbf{Условия с кванторами}. Вводятся кванторы всеобщности $\forall$ и существования
+	      $\exists$. Синтаксис: \texttt{<quantifier> <variable> (<condition>)}.
+	      \begin{lstlisting}[language=SQL, mathescape=true]
+    G where $\exists$ S (S.FirstName = 'John' $\wedge$ S.GId = G.GId)
+    G where $\forall$ S (S.FirstName = 'John' $\vee$ S.GId = G.GId)
+        \end{lstlisting}
+\end{itemize}
+
+\paragraph{Примеры}
+
+Рассмотрим примеры введения переменных, запроса, который требует в реляционной алгебре применения
+деления, и работы с несколькими отношениями.
+
+\begin{lstlisting}[language=SQL, mathescape=true]
+    -- Variables declaration
+    S :: Students; G :: Groups; C :: Courses; P :: Point;
+    G4 :: Groups where Name = 'M34351' $\vee$
+        Name = 'M34371' $\vee$ Name = 'M34391'
+
+    -- Fully marked groups
+    select G.GId from G where $\forall$ S ($\forall$ C($\exists$ P
+        (S.Sid = P.Sid $\wedge$ C.CId = P.CId $\wedge$ P.Points $\geq$ 60)))
+
+    -- Multiple relations
+    select S.FirstName, S.LastName, G.Name
+    from S, G
+    where S.GId = G.GId
+\end{lstlisting}
+
+\subsubsection{Связи реляционной алгебры и исчисления кортежей}
+
+\paragraph{Алгебра через исчисление}
+
+Выразим реляционную алгебру через исчисление кортежей.
+
+\begin{itemize}
+	\item \textbf{Проекция}.
+	      \begin{itemize}
+		      \item $\pi_{A_1, \ldots, A_n}(R)$
+		      \item \texttt{select A1, ..., An from R}
+	      \end{itemize}
+	\item \textbf{Фильтрация}.
+	      \begin{itemize}
+		      \item $\sigma_{\theta}(R)$
+		      \item \texttt{from R where $\theta$}
+	      \end{itemize}
+	\item \textbf{Создание нового столбца}.
+	      \begin{itemize}
+		      \item $\epsilon_{A=expr}(R)$
+		      \item \texttt{select R.*, expr as A from R}
+	      \end{itemize}
+	\item \textbf{Объединение}.
+	      \begin{itemize}
+		      \item $R_1 \cup R_2$
+		      \item \texttt{R :: R1, R2}
+	      \end{itemize}
+	\item \textbf{Разность}.
+	      \begin{itemize}
+		      \item $R_1 \setminus R_2$
+		      \item \texttt{R :: R1 where $\neg \exists$ R2 (R1 = R2)}
+	      \end{itemize}
+	\item \textbf{Декартово произведение}.
+	      \begin{itemize}
+		      \item $R_1 \times R_2$
+		      \item \texttt{select R1.*, R2.* from R1, R2}
+	      \end{itemize}
+	\item \textbf{Объединение}.
+	      \begin{itemize}
+		      \item $R_1 \bowtie R_2$
+		      \item \texttt{select R1.*, R2.* from R1, R2}
+		            \linebreak \texttt{where R1.<common\_attrs> = R2.<common\_attrs>}
+	      \end{itemize}
+\end{itemize}
+
+Указанные выше операции образуют базис реляционной алгебры. Следовательно, выразительная мощность
+реляционной алгебры \textit{не больше} выразительной мощности реляционного исчисления, и
+алгебру можно выразить через исчисление.
+
+\paragraph{Исчисление через алгебру}
+
+Выражения с кванторами можно привести к предваренной нормальной форме (сначала идут только
+кванторы, затем -- условие). После этого можно преобразовать выражение в алгебру:
+
+\begin{itemize}
+	\item Построение выражения для каждой переменной,
+	\item Построение декартового произведения по всем затронутым отношениям,
+	\item Фильтрация по условию,
+	\item Применение кванторов:
+	      \begin{itemize}
+		      \item Квантор существования: проекция, исключая атрибуты, порожденные переменной. Если существует хотя бы
+		            одно значение кортежной переменной, удовлетворяющее условию, то проекция будет непустой. Верно
+		            обратное.
+		      \item Квантор всеобщности: как было замечено, логике этого квантора соответствует деление. Таким образом,
+		            достаточно делить на все столбцы кортежной переменной.
+	      \end{itemize}
+\end{itemize}
+
+\paragraph{Пример}
+
+Запрос получает идентификаторы групп, в которых есть хотя бы один студент, аттестованный по всем
+дисциплинам.
+
+\begin{lstlisting}[language=SQL, mathescape=true]
+    select G.GId where $\exists$ S($\forall$ C($\exists$ P
+        (G.GId = S.GId $\wedge$ S.SId = P.SId $\wedge$
+         C.CId = P.CId $\wedge$ P.Points $\geq$ 60)))
+\end{lstlisting}
+
+Преобразуем его в реляционную алгебру.
+
+\[
+	T_0 = \sigma_{P.Points \geq 60}((G \bowtie S \times C) \bowtie P)
+\]
+
+Самый внутренний квантор ($\exists P$) -- проекция на все внешние атрибуты (находящиеся
+левее в выражении):
+
+\[
+	T_1 = \pi_{G_*, S_*, C_*}(T_0)
+\]
+
+Далее следует квантор всеобщности ($\forall C$) -- деление на переменную:
+
+\[
+	T_2 = T_1 \div C
+\]
+
+Последний квантор существования ($\exists S$) -- проекция на единственный оставшийся
+внешний атрибут:
+
+\[
+	T_3 = \pi_{G_*}(T_2)
+\]
+
+Получили выражение в терминах реляционной алгебры:
+
+\[
+	T = \pi_{G_*}(\pi_{G_*, S_*, C_*} (\sigma_{P.Points \geq 60}((G \bowtie S \times C) \bowtie P))
+	\div C)
+\]
+
+\begin{proposition}
+	Выразительная мощность исчисления кортежей равна выразительной мощности реляционной алгебры.
+\end{proposition}
+
+\begin{definition}
+	\textit{Реляционно-полные языки} -- языки, выразительная мощность которых не меньше
+	выразительной мощности реляционной алгебры.
+\end{definition}
+
+Следовательно, исчисление кортежей -- реляционно-полный язык.
