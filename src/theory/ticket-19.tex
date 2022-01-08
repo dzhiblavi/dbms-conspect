@@ -1,0 +1,127 @@
+\subsection{Исчисление доменов и его реляционная полнота}
+
+\subsubsection{Исчисление доменов}
+
+В качестве переменных выступают домены (типы). Иными словами, работа ведется с атомарными
+переменными в отличие от исчисления кортежей, где работа ведется с отношениями.
+
+\paragraph{Синтаксис объявления переменных}
+
+Указывается имя и \textit{домен (тип)}.
+
+\begin{lstlisting}
+    <Variable> :: <Type>
+\end{lstlisting}
+
+\paragraph{Пример}
+
+Можно использовать типы из SQL.
+
+\begin{lstlisting}[language=SQL]
+    SId :: Int
+    FirstName :: Varchar(100)
+\end{lstlisting}
+
+\paragraph{Условие принадлежности}
+
+Для связи доменов с отношениями вводится предикат проверки принадлежности значения заданному
+кортежу.
+
+\paragraph{Синтаксис}
+
+Отсутствие какого-либо атрибута отношения означает, что его конкретное значение нас не интересует.
+
+\begin{lstlisting}[language=SQL]
+    <Relation> {
+        <Attribute1> = <Value1>,
+        <Attribute2> = <Value2>,
+        ...
+    }
+\end{lstlisting}
+
+\paragraph{Пример}
+
+В последнем примере \texttt{SId = SId} означает, что аттрибут \texttt{SId} (слева) равен
+значению переменной с именем \texttt{SId}. Не отличается по смыслу от предыдущего.
+
+\begin{lstlisting}[language=SQL]
+    S{FirstName = 'John', LastName = 'Smith'}
+    S{SId = Id}
+    S{SId = SId}
+\end{lstlisting}
+
+\paragraph{Примеры}
+
+\begin{itemize}
+	\item Идентификаторы всех студентов:
+	      \begin{lstlisting}[language=SQL]
+    SId where S{SId = SId}
+        \end{lstlisting}
+	\item Идентификаторы всех студентов определенной группы:
+	      \begin{lstlisting}[language=SQL]
+    SId where S{SId = SId, GId = 'M34371'}
+        \end{lstlisting}
+	\item Идентификаторы всех студентов двух определенных групп:
+	      \begin{lstlisting}[language=SQL, mathescape=true]
+    SId where S{SId = SId, GId = 'M34371'} $\vee$
+              S{SId = SId, GId = 'M34391'}
+        \end{lstlisting}
+	\item Идентификаторы всех студентов, не сдавших курс с определенным идентификатором.
+	      \begin{lstlisting}[language=SQL, mathescape=true]
+    SId where $\neg \exists$ Points (Points $\geq$ 60 $\wedge$
+        P {SId = SId, Points = Points, CId = 10})
+        \end{lstlisting}
+\end{itemize}
+
+\subsubsection{Связи реляционной алгебры и исчисления доменов}
+
+\paragraph{Алгебра через исчисление}
+
+Выразим реляционную алгебру через исчисление доменов.
+
+\begin{itemize}
+	\item \textbf{Проекция}.
+	      \begin{itemize}
+		      \item $\pi_{A_1, \ldots, A_n}(R)$
+		      \item \texttt{A1, ..., An from R where R\{A1 = A1, ..., An = An\}}
+	      \end{itemize}
+	\item \textbf{Фильтрация}.
+	      \begin{itemize}
+		      \item $\sigma_{\theta}(R)$
+		      \item \texttt{A1, ..., An from R where R\{A1 = A1, ..., An = An\} $\wedge$ $\theta$}
+	      \end{itemize}
+	\item \textbf{Создание нового столбца}.
+	      \begin{itemize}
+		      \item $\epsilon_{A=expr}(R)$
+		      \item \texttt{expr as A from R where R\{A1 = A1, ..., An = An\}}
+	      \end{itemize}
+	\item \textbf{Объединение}.
+	      \begin{itemize}
+		      \item $R_1 \cup R_2$
+		      \item \texttt{A1, ..., An where R1\{..., Ai = Ai, ...\} $\vee$ R2\{..., Ai = Ai, ...\}}
+	      \end{itemize}
+	\item \textbf{Разность}.
+	      \begin{itemize}
+		      \item $R_1 \setminus R_2$
+		      \item \texttt{A1, ..., An where R1\{..., Ai = Ai, ...\} $\vee$ $\neg$
+			            R2\{..., Ai = Ai, ...\}}
+	      \end{itemize}
+	\item \textbf{Декартово произведение}.
+	      \begin{itemize}
+		      \item $R_1 \times R_2$
+		      \item \texttt{A1, ..., An, B1, ..., Bm where R1\{..., Ai = Ai, ...\} $\wedge$}
+		            \linebreak \texttt{R2\{..., Bj = Bj, ...\}}
+	      \end{itemize}
+	\item \textbf{Объединение}.
+	      \begin{itemize}
+		      \item $R_1 \bowtie R_2$
+		      \item \texttt{A1, ..., An, B1, ..., Bm, C1, ..., Cl}
+		            \linebreak \texttt{where R1\{..., Ai = Ai, ..., Bj = Bj, ...\} $\wedge$}
+		            \linebreak \texttt{R2\{..., Bj = Bj, ..., Ck = Ck, ...\}}
+	      \end{itemize}
+\end{itemize}
+
+\begin{proposition}
+	Выразительная мощность исчисления доменов не меньше выразительной мощности реляционной алгебры, то
+	есть исчисление доменов -- реляционно-полный язык.
+\end{proposition}
