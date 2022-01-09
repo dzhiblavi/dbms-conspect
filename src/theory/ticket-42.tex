@@ -1,0 +1,157 @@
+\subsection{Трактовки null и операции с ним}
+
+\subsubsection{Трактовки null}
+
+SQL допускает использования в качестве значения \texttt{null} по умолчанию. Однако, это
+значение может трактоваться по-разному.
+
+Рассмотрим для этого следующий пример: пусть в БД ``Университет'' идентификатор группы студента
+равен \texttt{null}, то есть значение отсутствует. Это может означать одно следующего:
+
+\begin{itemize}
+	\item \textbf{Значение не известно}. Неизвестно, в какой группе обучается студент;
+	\item \textbf{Значение не верно}. Студент учится в группе, имя которой неверно;
+	\item \textbf{Значение еще не существует}. Студент зачислен, но не определен в группу;
+	\item \textbf{Значение уже не существует}. Группа отчисленного студента;
+	\item \textbf{Значение не имеет смысла}. Студент из другого университета;
+	\item \textbf{Значение не доступно}. У пользователя нет права узнать группу.
+\end{itemize}
+
+Заметим, что отсутствующие значения можно реализовать без \texttt{null} -- используя
+необязательную связь 1:1. Однако, \texttt{null} может появиться в результате
+множественных операций и внешних соединений. Поэтому полностью \texttt{null} исключить
+нельзя.
+
+\subsubsection{Операции с null}
+
+\paragraph{Тернарная логика}
+
+С точки зрения SQL \textit{результат} результат логического выражения может быть
+\texttt{true}, \texttt{false} или \texttt{unknown}. Однако, тип
+\texttt{boolean} может \textit{принимать значения} \texttt{true},
+\texttt{false} или \texttt{null}. С практической точки зрения,
+\texttt{unknown} и \texttt{null} не отличаются.
+
+Рассмотрим основные логические опреации.
+
+\begin{center}
+	\begin{tabular}{|c||c|c|c|}
+		\hline
+		\textbf{AND}     & \texttt{true}    & \texttt{unknown} & \texttt{false} \\
+		\hline
+		\hline
+		\texttt{true}    & \texttt{true}    & \texttt{unknown} & \texttt{false} \\
+		\hline
+		\texttt{unknown} & \texttt{unknown} & \texttt{unknown} & \texttt{false} \\
+		\hline
+		\texttt{false}   & \texttt{false}   & \texttt{false}   & \texttt{false} \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{|c||c|c|c|}
+		\hline
+		\textbf{OR}      & \texttt{true} & \texttt{unknown} & \texttt{false}   \\
+		\hline
+		\hline
+		\texttt{true}    & \texttt{true} & \texttt{true}    & \texttt{true}    \\
+		\hline
+		\texttt{unknown} & \texttt{true} & \texttt{unknown} & \texttt{unknown} \\
+		\hline
+		\texttt{false}   & \texttt{true} & \texttt{unknown} & \texttt{false}   \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{|c||c|c|c|}
+		\hline
+		\textbf{NOT} & \texttt{true}  & \texttt{unknown} & \texttt{false} \\
+		\hline
+		\hline
+		             & \texttt{false} & \texttt{unknown} & \texttt{true}  \\
+		\hline
+	\end{tabular}
+\end{center}
+
+Интуитивно, \texttt{true} > \texttt{unknown} > \texttt{false}.
+\textbf{AND} возвращает меньшее из аргументов, \textbf{OR} -- большее из
+аргументов, \textbf{NOT} -- обратное по порядку.
+
+Для сравнения используются два оператора: бинарный \textbf{=} и унарный
+\textbf{is [not] (true | unknown | false)}.
+
+\begin{center}
+	\begin{tabular}{|c||c|c|c|}
+		\hline
+		\textbf{=}       & \texttt{true}    & \texttt{unknown} & \texttt{false}   \\
+		\hline
+		\hline
+		\texttt{true}    & \texttt{true}    & \texttt{unknown} & \texttt{false}   \\
+		\hline
+		\texttt{unknown} & \texttt{unknown} & \texttt{unknown} & \texttt{unknown} \\
+		\hline
+		\texttt{false}   & \texttt{false}   & \texttt{unknown} & \texttt{true}    \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{|c||c|c|c|}
+		\hline
+		\textbf{is}             & \texttt{true}  & \texttt{unknown} & \texttt{false} \\
+		\hline
+		\hline
+		\textbf{is true}        & \texttt{true}  & \texttt{false}   & \texttt{false} \\
+		\hline
+		\textbf{is unknown}     & \texttt{false} & \texttt{true}    & \texttt{false} \\
+		\hline
+		\textbf{is false}       & \texttt{false} & \texttt{false}   & \texttt{true}  \\
+		\hline
+		\textbf{is not true}    & \texttt{false} & \texttt{true}    & \texttt{true}  \\
+		\hline
+		\textbf{is not unknown} & \texttt{true}  & \texttt{false}   & \texttt{true}  \\
+		\hline
+		\textbf{is not false}   & \texttt{true}  & \texttt{true}    & \texttt{false} \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\paragraph{Пример}
+
+Рассмотрим импликацию: через \textbf{OR} (\texttt{A $\rightarrow$ B = (not A) or B}) и через \textbf{AND} (\texttt{A $\rightarrow$ B = not (A and not B)}).
+
+\begin{center}
+	\begin{tabular}{|c||c|c|c|}
+		\hline
+		$\xrightarrow{\textbf{OR}}$ & \texttt{true} & \texttt{unknown} & \texttt{false}   \\
+		\hline
+		\hline
+		\texttt{true}               & \texttt{true} & \texttt{unknown} & \texttt{false}   \\
+		\hline
+		\texttt{unknown}            & \texttt{true} & \texttt{unknown} & \texttt{unknown} \\
+		\hline
+		\texttt{false}              & \texttt{true} & \texttt{unknown} & \texttt{true}    \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{|c||c|c|c|}
+		\hline
+		$\xrightarrow{\textbf{AND}}$ & \texttt{true} & \texttt{unknown} & \texttt{false}   \\
+		\hline
+		\hline
+		\texttt{true}                & \texttt{true} & \texttt{unknown} & \texttt{false}   \\
+		\hline
+		\texttt{unknown}             & \texttt{true} & \texttt{unknown} & \texttt{unknown} \\
+		\hline
+		\texttt{false}               & \texttt{true} & \texttt{true}    & \texttt{true}    \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{proposition}
+	Законы Де Моргана неприменимы в тернарной логике.
+\end{proposition}
