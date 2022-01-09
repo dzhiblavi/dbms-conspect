@@ -1,0 +1,351 @@
+\subsection{Datalog и рекурсия}
+
+\subsubsection{Datalog}
+
+\textit{Datalog} -- язык запросов к БД. Разработан в 1978 году, имеет много схожего с языком
+Prolog. Повлиял на развитие SQL. Реализует исчисление доменов.
+
+Программа на языке состоит из набора определений отношений. Результатом считается тело одного из
+отношений.
+
+\paragraph{Конструкции языка}
+
+\begin{itemize}
+	\item \textbf{Реляционные атомы}. Реализуют предикат вхождения из исчисления доменов.
+	      Используется позиционная запись аргументов.
+	      \begin{lstlisting}[mathescape=true]
+    -- Values belong to relation R
+    R(x1, x2, ..., xn)
+    -- Values do not belong to relation R
+    $\neg$ R(x1, x2, ..., xn)
+        \end{lstlisting}
+	\item \textbf{Арифметические атомы}. Сравнение двух выражений.
+\end{itemize}
+
+\paragraph{Синтаксис}
+
+Программа состоит из списка строк:
+
+\begin{lstlisting}
+    <Relation>(<Attr 1>, <Attr 2>, ..., <Attr n>) :- <Target>
+\end{lstlisting}
+
+Цель (target) -- последовательность атомов. В отношение (Relation) входят кортежи, удовлетворяющие
+хотя бы одной цели (всем атомам хотя бы одной цели).
+
+Иначе говоря, запросы пишутся в дизъюнктивной нормальной форме.
+
+\paragraph{Примеры}
+
+\begin{itemize}
+	\item Идентификаторы и фамилии всех студентов с заданным именем:
+	      \begin{lstlisting}
+    Johns(Id, LastName) :-
+        Students(Id, FirstName, LastName),
+        FirstName = 'John'.
+        \end{lstlisting}
+	\item Имена всех студентов и преподавателей:
+	      \begin{lstlisting}
+    Names(Name) :- Students(_, Name, _).
+    Names(Name) :- Lecturers(_, Name, _).
+        \end{lstlisting}
+\end{itemize}
+
+\paragraph{Бесконечные отношения}
+
+Запросы могут породить бесконечные отношения. Например:
+
+\begin{lstlisting}[mathescape=true]
+    NotStudent(Id, Name) :- $\neg$ Students(Id, Name, _).
+\end{lstlisting}
+
+Здесь нет ограничения на фамилию студента -- ни по типу, ни по значению -- поэтому это отношение
+бесконечно и содержит студентов с почти произвольными фамилиями.
+
+\begin{proposition}
+	Для запрета бесконечных отношения достаточно принудить каждую переменную входить как минимум в один
+	неотрицательный реляционный атом.
+\end{proposition}
+
+\paragraph{Реляционная алгебра через Datalog}
+
+Выразим реляционную алгебру через исчисление доменов.
+
+\begin{itemize}
+	\item \textbf{Проекция}.
+	      \begin{itemize}
+		      \item $\pi_{A_1, \ldots, A_n}(R)$
+		      \item \texttt{Q(A1, ..., An) :- R(A1, ..., An, \_, ..., \_).}
+	      \end{itemize}
+	\item \textbf{Фильтрация}.
+	      \begin{itemize}
+		      \item $\sigma_{\theta}(R)$
+		      \item \texttt{Q(A1, ..., An) :- R(A1, ..., An, \_, ..., \_), $\theta$.}
+	      \end{itemize}
+	\item \textbf{Объединение}.
+	      \begin{itemize}
+		      \item $R_1 \cup R_2$
+		      \item \texttt{Q(A1, ..., An) :- R1(A1, ..., An).}
+		            \linebreak \texttt{Q(A1, ..., An) :- R2(A1, ..., An).}
+	      \end{itemize}
+	\item \textbf{Разность}.
+	      \begin{itemize}
+		      \item $R_1 \setminus R_2$
+		      \item \texttt{Q(A1, ..., An) :- R1(A1, ..., An), $\neg$ R2(A1, ..., An).}
+		      \item \textbf{Замечание}. Запись корректна, поскольку атрибуты \texttt{A1, ..., An} входят
+		            в неотрицательный реляционный атом R1.
+	      \end{itemize}
+	\item \textbf{Декартово произведение}.
+	      \begin{itemize}
+		      \item $R_1 \times R_2$
+		      \item \texttt{Q(A1, ..., An, B1, ..., Bm) :- R1(A1, ..., An), R2(B1, ..., Bm).}
+	      \end{itemize}
+	\item \textbf{Объединение}.
+	      \begin{itemize}
+		      \item $R_1 \bowtie R_2$
+		      \item \texttt{Q(A1, ..., An, B1, ..., Bm, C1, ..., Cl) :-}
+		            \linebreak \texttt{R1(A1, ..., An, B1, ..., Bm), R2(B1, ..., Bm, C1, ..., Cl).}
+	      \end{itemize}
+\end{itemize}
+
+\begin{proposition}
+	Datalog -- реляционно-полный язык.
+\end{proposition}
+
+\begin{remark}
+	В Datalog нет явных кванторов. Есть только неявный квантор существования -- для свободных
+	переменных справа в выражении.
+\end{remark}
+
+\paragraph{Пример}
+
+Рассмотрим таблицу:
+
+\begin{lstlisting}
+    Person(Id, Name, MotherId, FatherId)
+\end{lstlisting}
+
+Получить для каждого человека имена обоих родителей:
+
+\begin{lstlisting}
+    Parents(N, FN, MN) :- Person(_, N, FId, MId),
+        Person(FId, FN, _, _), Person(MId, MN, _, _).
+\end{lstlisting}
+
+Получить для каждого человека имя его родителя:
+
+\begin{lstlisting}
+    Parents(N, FN) :- Person(_, N, FId, _), Person(FId, FN, _, _).
+    Parents(N, MN) :- Person(_, N, MId, _), Person(MId, MN, _, _).
+\end{lstlisting}
+
+\subsubsection{Рекурсивные запросы}
+
+Datalog позволяет строить рекурсивные запросы, например, для транзитивного замыкания. Рассмотрим
+для примера таблицу:
+
+\begin{lstlisting}
+    Parent(Id, ParentId)
+\end{lstlisting}
+
+И запрос для получения всех предков (представляющий собой транзитивное замыкание):
+
+\begin{lstlisting}
+    Ancestor(Id, PId) :- Parent(Id, PId).
+    Ancestor(Id, GId) :- Parent(Id, PId), Ancestor(PId, GId).
+\end{lstlisting}
+
+Такому запросу отвечает несколько множеств кортежей. Формально, помимо ожидаемого транзитивного
+замыкания, декартово произведение всех возможных идентификаторов будет удовлетворять запросу. При
+этом, такое множество кортежей будет \textit{неподвижной точкой} -- множеством, которое нельзя дополнить
+по правилам вывода. Но такой результат не будет иметь практического смысла
+
+Во избежание неопределенности, в Datalog результатом рекурсивного запроса является
+\textit{минимальная неподвижная точка} -- минимальное по включению множество, такое что левая и правая части
+совпадают.
+
+На практике рекурсивное правило применяется, пока не будет достигнута неподвижная точка. Очевидно,
+она будет минимальной по включению.
+
+\paragraph{Поиск минимальной неподвижной точки}
+
+\begin{itemize}
+	\item Инициализация нерекурсивными данным,
+	\item Пока есть следствия, данные  пополняются ими.
+\end{itemize}
+
+\begin{remark}
+	Отрицания в рекурсивных правилах могут приводить к парадоксам (например, на шаге
+	$n$ какие-то данные должны быть добавлены, на $n + 1$ -- нет).
+	Поэтому в рекурсивных запросах явно запрещены циклы, содержащие отрицания.
+\end{remark}
+
+\begin{remark}
+	Как было замечено ранее, реляционная алгебра не позволяет построить рекурсивные запросы.
+	Следовательно, выразительная мощность Datalog больше, чем у реляционной алгебры.
+\end{remark}
+
+\subsubsection{Связь реляционного исчисления и SQL}
+
+\begin{itemize}
+	\item \textbf{Заголовок запроса}. Определяет, какие данные будут получены. В реляционной
+	      алгебре соответствует самой внешней проекции. В реляционном исчислении -- заголовку запроса.
+	\item \textbf{Раздел \texttt{from}}. Определяет набор отношений, с которыми производится
+	      работа. В реляционной алгебре здесь указываются соединения. В реляционном исчислении -- переменные
+	      отношений.
+	\item \textbf{Раздел \texttt{where}}. Определяет набор отношений, с которыми производится
+	      работа. В реляционной алгебре соответствует самой внешней фильтрации. В реляционном исчислении --
+	      условию на кортежи.
+\end{itemize}
+
+\begin{remark}
+	В языке SQL на практике большинство кванторов применяется для соединений. Однако, существует также
+	явный квантор существования. Как было показано в Datalog, квантор всеобщности избыточен
+	($\forall v(p(v)) \equiv \neg \exists v(\neg p(v))$)
+\end{remark}
+
+\subsubsection{Подзапросы}
+
+Квантор существования предоставлен в SQL через подзапросы существования:
+
+\begin{itemize}
+	\item Существования (\texttt{exists}),
+	\item Вхождения (\texttt{in}),
+	\item Условные (\texttt{any, all}),
+	\item Скалярные.
+\end{itemize}
+
+\paragraph{Подзапрос существования}
+
+Если подзапросу удовлетворяет хотя бы один кортеж, то оператор возвращает \texttt{true},
+иначе \texttt{false}.
+
+\begin{lstlisting}[language=SQL]
+    [not] exists (select ...)
+\end{lstlisting}
+
+\paragraph{Пример}
+
+Группы, в которых нет студентов:
+
+\begin{lstlisting}[language=SQL]
+    select G.Name where
+    not exists (select * from S where S.Gid = G.Gid)
+\end{lstlisting}
+
+\paragraph{Подзапрос вхождения}
+
+Если результаты всех выражений входят в подзапрос, то оператор возвращает \texttt{true},
+иначе \texttt{false}.
+
+\begin{lstlisting}[language=SQL]
+    (<list of expressions>) [not] in (select ...)
+\end{lstlisting}
+
+\begin{remark}
+	Многие СУБД поддерживают подзапросы только с одним столбцом.
+\end{remark}
+
+\paragraph{Пример}
+
+Оценки по предметам 4 курса:
+
+\begin{lstlisting}[language=SQL]
+    select * from P where P.CId in
+        (select CId from C where Year = 4)
+\end{lstlisting}
+
+\paragraph{Условный подзапрос}
+
+\texttt{any} возвращает \texttt{true}, если для одного из значений выполняется
+условие. Аналогично, \texttt{all} возвращает \texttt{true}, если для всех
+значений выполняется условие.
+
+\begin{lstlisting}[language=SQL]
+    <expression> <condition> { any | all } (select ...)
+\end{lstlisting}
+
+\paragraph{Пример}
+
+Лучшие студенты по предметам:
+
+\begin{lstlisting}[language=SQL]
+    select SId, CId from P as PE where PE.Points >=
+        all (select Points from P where P.CId = PE.CId)
+\end{lstlisting}
+
+\paragraph{Скалярные подзапросы}
+
+Запросы, возвращающие не более одного значения.
+
+\begin{lstlisting}[language=SQL]
+    (select ...)
+\end{lstlisting}
+
+\begin{remark}
+	Результатом скалярного подзапроса, вернувшего пустой результат, является \texttt{null}.
+\end{remark}
+
+\paragraph{Пример}
+
+Студенты и название группы:
+
+\begin{lstlisting}[language=SQL]
+    select
+        SId,
+        (select Name from G where G.GId = S.GId)
+    from S
+\end{lstlisting}
+
+\paragraph{Кореллированные подзапросы}
+
+\begin{definition}
+	Подзапрос называется \textit{кореллированным (некореллированным)}, если в нем есть (отсутствуют) свободные переменные.
+\end{definition}
+
+\paragraph{Примеры}
+
+Лучшие студенты по предметам (кореллированный подзапрос, \texttt{PE} -- свободная
+переменная):
+
+\begin{lstlisting}[language=SQL, escapechar=\%]
+    select SId, CId from P as %\underline{PE}% where PE.Points >=
+        all (select Points from P where P.CId = %\underline{PE}%.CId)
+\end{lstlisting}
+
+Оценки по предметам четвертого курса (некореллированный подзапрос):
+
+\begin{lstlisting}[language=SQL]
+    select * from P where P.CId in
+        (select CId from C where Year = 4)
+\end{lstlisting}
+
+\begin{remark}
+	Преимущество некореллированных подзапросов в том, что их можно посчитать один раз и
+	переиспользовать результат в дальнейшем. Поэтому на практике они предпочтительнее кореллированных.
+\end{remark}
+
+\subsubsection{Рекурсия}
+
+Поддержка рекурсии была добавлена в SQL3. Однако, многие СУБД не поддерживают ее.
+
+\paragraph{Синтаксис}
+
+Как и в Datalog, отрицание должно быть стратифицировано -- оно запрещено в циклах рекурсии.
+
+\begin{lstlisting}[language=SQL]
+    with recursive <relation>(<columns>) as ...
+\end{lstlisting}
+
+\paragraph{Пример}
+
+Транзитивное замыкание предков:
+
+\begin{lstlisting}[language=SQL]
+    with recursive Ancestor(Id, AId) as
+        select Id, PId from Parent
+        union
+        select P.Id, AId from Ancestor a
+            inner join Parent p on a.Id = p.PId
+    select * from Ancestor
+\end{lstlisting}
