@@ -1,0 +1,64 @@
+\subsubsection{Операции с null в SQL}
+
+\paragraph{Предикаты}
+
+\begin{itemize}
+	\item \textbf{DML}. В результате \texttt{where} и \texttt{having} остается только
+	      \texttt{true}. Все другие значения преобразовываются в \texttt{false}, включая
+	      \texttt{unknown}.
+	\item \textbf{DDL}. В \texttt{check} не подходят только \texttt{false}. Все другие
+	      значения
+	      преобразовываются в \texttt{true}, включая \texttt{unknown}. То есть ограничение,
+	      вернувшее \texttt{unknown} считается удовлетворяющим.
+\end{itemize}
+
+\paragraph{Различимость}
+
+Сравнение двух \texttt{null} возвращает \texttt{unknown}. При использовании его в
+\texttt{where} результат преобразуется в \texttt{false}. Следовательно, два
+\texttt{null} не равны. Кроме того, они не различимы.
+
+Неразличимость не эквивалентна неравенству. Например, при использовании \texttt{distinct} из
+двух одинаковых кортежей с отсутствующими полями в результате будет один. Аналогично,
+\texttt{group by} породит только одну корзину.
+
+\paragraph{Столбцы}
+
+По умолчанию, столбцы допускают \texttt{null} в качестве значения:
+
+\begin{lstlisting}[language=SQL]
+    birthday date
+\end{lstlisting}
+
+Для запрета отсутствующих значений это требуется явно указать:
+
+\begin{lstlisting}[language=SQL]
+    birthday date not null
+\end{lstlisting}
+
+\paragraph{Проверки значений}
+
+Для надежной проверки, чему равно значение из тернарной логики, используется следующий оператор:
+
+\begin{lstlisting}[language=SQL]
+    <value> is [not] {null | true | false | unknown}
+\end{lstlisting}
+
+\texttt{is null} -- способ проверить, равно ли что-либо \texttt{null}.
+\texttt{is unknown}
+применяется для булевских значений. Однако, для булевских значений \texttt{unknown}
+представляется как \texttt{null}. На практике, популярных СУБД эти два значения -- одно и
+то же.
+
+\paragraph{Прочие спецэффекты}
+
+\begin{itemize}
+	\item \texttt{exists}. Возвращает только \texttt{true} или \texttt{false}. Если
+	      все строки
+	      состоят из \texttt{null} -- результат равен \texttt{false}.
+	\item \textbf{Агрегирующие функции}. По умолчанию пропускают \texttt{null}. Если в результате
+	      остается пустой набор аргументов, то результат будет равен \texttt{null}. Единственное
+	      исключение -- \texttt{count(*)} -- считает число строк.
+	\item \texttt{order by}. Можно указать \texttt{nulls first} или \texttt{nulls last} и
+	      определить, считать \texttt{null} меньше или больше других значений соответственно.
+\end{itemize}
