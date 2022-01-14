@@ -273,12 +273,12 @@
 \begin{examples}
 	\enewline
 	\begin{lstlisting}[language=SQL]
-        ...
-        foreign key (CId) references Courses
-        on delete cascade on update cascade;
-        ...
-        foreign key (SId) references Students
-        on delete restrict on update cascade;
+    ...
+    foreign key (CId) references Courses
+    on delete cascade on update cascade;
+    ...
+    foreign key (SId) references Students
+    on delete restrict on update cascade;
     \end{lstlisting}
 \end{examples}
 
@@ -323,14 +323,14 @@
 \begin{examples}
 	\enewline
 	\begin{lstlisting}[language=SQL]
-        -- Delete propagation
-        create trigger on Course after delete
-        referencing old row c for each row
-        delete from points p where p.CId = c.CId;
+    -- Delete propagation
+    create trigger on Course after delete
+    referencing old row c for each row
+    delete from points p where p.CId = c.CId;
 
-        -- Updates audit
-        create trigger on Points after insert, update
-        referencing new row p
-        for each row set p.time = now()
+    -- Updates audit
+    create trigger on Points after insert, update
+    referencing new row p
+    for each row set p.time = now()
     \end{lstlisting}
 \end{examples}
