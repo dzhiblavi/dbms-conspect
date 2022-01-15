@@ -1,0 +1,159 @@
+\subsection{Управление доступом к данным}
+
+\subsubsection{Схемы управления доступом}
+
+Существуют две популярные схемы организации доступа:
+
+\begin{itemize}
+	\item \textbf{Избирательная (дискреционная)}. Основана на списках доступа, где указано, к чему
+	      имеет доступ каждый пользователь. В схеме существуют объекты, на каждый из которых существует набор
+	      прав, которые друг с другом не связан. Пользователи могут иметь различные права. Также
+	      предусмотрены группы пользователей, права групп при этом распространяются на членов группы;
+	\item \textbf{Мандатная}. Данным и пользователям присваиваются классификационные уровни. Данные
+	      более низкого уровня являются частью данных более высокого уровня. Чтение разрешено при условии,
+	      что уровень ресурса \textit{меньше} уровн пользователя. Изменение разрешено при условии
+	      \textit{равенства} уровней (иначе изменение данных более низкого уровня на основе данных более
+	      высокого уровня может привести к их рассекречиванию). Добавление записей разрешено на уровень
+	      \textit{больший или равный} уровню пользователя.
+\end{itemize}
+
+\subsubsection{Пользователи и группы}
+
+По стандарту в SQL применяется \textbf{дискреционная} политика организации доступа, существуют
+пользователи и группы (однако, не существует стандартного способа управления ими).
+
+\paragraph{Синтаксис}
+\enewline
+
+\begin{lstlisting}[language=SQL]
+    create user <name> [password <password>];
+    alter user <name> [password <password>];
+    drop user <name>;
+    create group <name>;
+    alter group <name> {add | drop} user <username>
+    drop group <name>;
+\end{lstlisting}
+
+\begin{remark}
+	Большинство СУБД поддерживают синтаксис, схожий с приведенным выше. При этом он не относится к
+	стандарту.
+\end{remark}
+
+\subsubsection{DCL (Data Control Language)}
+
+Стандартизированный SQL способ выдачи прав пользователям и группам.
+
+\paragraph{Синтаксис добавления прав}
+\enewline
+
+\begin{lstlisting}[language=SQL]
+    grant {select | insert | update | delete | create
+           | execute | trigger | usage | ... | all privileges}
+    on {table | database | view | procedure
+        | function | ...} <name>
+    to {<username> | group <groupname> | public}
+    [with grant option]
+\end{lstlisting}
+
+Множество возможных прав зависит от объекта, на который они выдаются. Опция \texttt{with grant option}
+дает право передоверия выданных прав.
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    grant all privileges on Students
+    to group Deans with grant option;
+    grant select on Students to public;
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Синтаксис удаления прав}
+\enewline
+
+\begin{lstlisting}[language=SQL]
+    revoke [grant option for]
+    {select | insert | update | delete | create
+     | execute | trigger | usage | ... | all privileges}
+    on {table | database | view | procedure
+        | function | ...} <name>
+    from {<username | group <groupname> | public}
+    [cascade | restrict]
+\end{lstlisting}
+
+\texttt{cascade} и \texttt{restrict} определяют, нужно ли забирать права у всех, кому
+были передоверены права, или следует ли в таком случае запретить изменение прав. Использование
+\texttt{revoke grand option for}, удаляет только право передоверия, но не само право.
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    revoke insert on Students
+    from group Deans cascade;
+    revoke update on Students from public;
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Владелец объекта}
+
+Пользователь, создавший объект, является его владельцем, и не может ограничить свои права. При этом
+владельца можно изменить.
+
+\paragraph{Синтаксис}
+\enewline
+
+\begin{lstlisting}[language=SQL]
+    alter {table | schema | database | ...} <name>
+    owner to <user>
+\end{lstlisting}
+
+\subsubsection{Права и представления}
+
+\paragraph{Фильтрующая таблица}
+
+Можно создать представление, фильтрующие данные, и выдать права на него. Таким образом,
+пользователь, группа или все получат доступ к ограниченному набору данных из таблицы. Напомним, что
+такие представления изменяемые.
+
+\begin{example}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    create view FITPStudents as
+    select * from students
+    where GId in
+    (select GId from Groups where FId = 'ITP');
+
+    grant all privileges on FITPStudents to FITPDean;
+    \end{lstlisting}
+\end{example}
+
+\paragraph{Спроецированная таблица}
+
+Аналогично фильтрующей таблице, спроецированная дает доступ к ограниченному набору столбцов. Такие
+представления также изменяемые.
+
+\begin{example}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    -- e.g. no passport info
+    create view PublicStudents as
+    select SId, FirstName, LastName from students;
+
+    grant select privileges on PublicStudents to public;
+    \end{lstlisting}
+\end{example}
+
+\paragraph{Агрегированная таблица}
+
+Также можно выдать более широкий доступ на таблицу, которая содержит агрегированные данные. Такие
+представления почти ни в какой реализации СУБД не являются изменяемыми.
+
+\begin{example}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    create view StudentPoints as
+    select SId, avg(Points)
+    from Students natural join Marks;
+
+    grant select privileges on StudentPoints to public;
+    \end{lstlisting}
+\end{example}
