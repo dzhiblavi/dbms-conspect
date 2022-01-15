@@ -1,0 +1,336 @@
+\subsubsection{Целостность данных. Триггеры}
+
+\subsubsection{CRUD}
+
+Базы данных реализуют стандартный интерфейс \textit{CRUD}:
+
+\begin{itemize}
+	\item \textit{Create} -- оператор \texttt{insert},
+	\item \textit{Read} -- оператор \texttt{select},
+	\item \textit{Update} -- оператор \texttt{update},
+	\item \textit{Delete} -- оператор \texttt{delete}.
+\end{itemize}
+
+\paragraph{Insert}
+
+Оператор вставки (был рассмотрен ранее). В случае, если список атрибутов (\textit{attributes})
+опущен, ожидаются все в порядке, в котором они были определены в DDL. Не все СУБД поддерживают
+вставку нескольких строк в рамках одного запроса.
+
+\begin{lstlisting}[language=SQL]
+    insert into <table> [(<attributes>)]
+    values (<values>) [, <more lines>];
+    insert into <table> [(<attribues>)]
+    <query>;
+\end{lstlisting}
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    insert into Courses (Name, Lecturer) values
+    ('DBMS', 'John Smith'),
+    ('Software Design', 'Smith Johnson');
+    insert into Points
+    select SId, CId, 0 from Students, Courses;
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Update}
+
+Оператор обновления. Часть \texttt{where} является необязательной, и при отсутствии
+обновляются все строки.
+
+\begin{lstlisting}[language=SQL]
+    update <table> set
+    <attribute> = <value> [, <attribute> = <value>, ...]
+    [where <condition>]
+\end{lstlisting}
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    update Students set GroupId = '4537'
+    where LastName = 'Smith';
+    update Students set
+    PassNo = '1234', PassSeries = '567890'
+    where SId = 1;
+    update Points set points = points + 1 where CId in
+    (select CId from Courses where Name = 'DBMS');
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Delete}
+
+Оператор удаления. Аналогично \texttt{Update}, часть \texttt{where} является
+необязательной, и при отсутствии удаляются все строки. Другой способ полностью очистить таблицу --
+оператор \texttt{truncate}, формально относящийся к DDL.
+
+\begin{lstlisting}[language=SQL]
+    delete from <table> [where <condition>];
+    truncate <table>;
+\end{lstlisting}
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    delete from Points where CId in
+    (select CId from Courses where Name = 'DBMS);
+    truncate Points;
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Merge}
+
+Оператор слияния. Объединяет вставку и обновление. Поддерживается не всеми СУБД. Дополнительные
+условия (\texttt{match condition}, \texttt{not match condition}) также поддерживаются не всеми СУБД. Также
+некоторые СУБД при поддержке дополнительных условий позволяют сделать несколько веток на
+\texttt{when matched} и \texttt{when not matched}. Действием (\texttt{action}) может быть
+\texttt{insert}, \texttt{update} или \texttt{delete} (но не все из них имеют смысл, например,
+\texttt{update} или \texttt{delete} в ветке \texttt{not matched}).
+
+\begin{lstlisting}[language=SQL]
+    merge into <table> [[as] <alias 1>]
+    using <data> [[as] <alias 2]
+    on <condition>
+    when matched [and <match condition>] then <action 1>
+    when not matched [and <not match condition>] then <action 2>
+\end{lstlisting}
+
+\begin{example}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    merge into Points
+    using (select * from Courses c, Students s) r
+    on Points.CId = r.Cid and Points.SId = r.SId
+    when matched then update set points = points + 1
+    when not matched then insert (SId, CId, points)
+        values (r.SId, r.CId, 1)
+    \end{lstlisting}
+\end{example}
+
+\subsubsection{Типы ограничения целостности данных}
+
+\begin{definition}
+	\textit{Корректность данных} -- соответствие содержимого БД ``реальному миру''. Не может быть
+	проверена в терминах БД.
+\end{definition}
+
+\begin{examples}
+	\enewline
+	\begin{itemize}
+		\item Оценка каждого студента соответствует полученной на экзамене;
+		\item Студент слушает курс ``БД''.
+	\end{itemize}
+\end{examples}
+
+Для БД имеет смысл понятие \textit{целостности}.
+
+\begin{definition}
+	\textit{Целостность} -- непротиворечивость содержимого БД. Может быть описана набором правил и
+	проверена.
+\end{definition}
+
+\begin{examples}
+	\enewline
+	\begin{itemize}
+		\item У студента есть оценки только по предметам, которые слушала его группа;
+		\item Студент посетил столько занятий курса, сколько их было проведено.
+	\end{itemize}
+\end{examples}
+
+По умолчанию проверка целостности происходит при завершении работы \textit{каждого оператора}. Также в
+рамках \textit{транзакции} возможно отложить проверки целостности некоторых ограничений. При
+обнаружении нарушения целостности все изменения отменяются.
+
+\paragraph{Ограничение типа}
+
+Ограничение задает множество значений данных, допустимых для типа. Некоторые СУБД также
+поддерживают перечисления, составные типы данных и объявление ограничений на существующие типы.
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    -- Date type
+    Date
+    -- Custom type of two string of length from 0 to 100
+    create type Name as object (
+        FirstName varchar(100),
+        LastName varchar(100)
+    )
+    -- Points of limited range
+    create type Points as object (
+        points as int between 0 and 100
+    )
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Ограничение атрибута}
+
+Ограничение задает множество значений, допустимых для атрибута. Является следствием его типа.
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    -- Date type
+    Enroll Date not null
+    -- Custom type of two string of length from 0 to 100
+    SName Name
+    -- Points of limited range
+    CoursePoints Points
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Ограничение отношения}
+
+Ограничение позволяет задать несколько предикатов, конъюнкция которых будет проверяться. Типы
+предикатов: \textit{ключи}, \textit{внешние ключи}, \textit{проверяемые условия} (или
+\textit{check constraint}).
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    -- Primary key
+    primary key (SId, CId)
+    -- Key
+    unique (PassNo, PassSeries)
+    -- Foreign key
+    foreign key (SId) references Students(SId)
+    -- Check constraint
+    check (Points between 0 and 100)
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Проверяемые условия}
+
+Проверяются для каждого кортежа, неявный квантор всеобщности $\forall$. Следовательно,
+пустые отношения не проверяются на условия. Оптимизатор СУБД может упрощать реализацию проверок,
+где это корректно.
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    -- Manual foreign key check
+    SId in (select SId from Students);
+    -- Consistency check
+    ExpulsionDate not null or
+    not exists (select * from Points p
+                where p.SId = SId, p.CId = CId and Point < 60);
+    \end{lstlisting}
+\end{examples}
+
+\paragraph{Ограничения базы данных}
+
+Задается множество значений, которые может принимать база данных. Например, через предикаты таблиц
+или предикаты утверждений.
+
+\begin{example}
+	\textit{Предикат утверждений}:
+	\begin{lstlisting}[language=SQL]
+    create assertion NonEmptyGroup check (not exists
+        (select * from Group g where not exists
+            (select * from Students s where s.GId = g.GId)))
+    \end{lstlisting}
+\end{example}
+
+\subsubsection{Компенсирующие действия}
+
+Рассмотрим пример: в БД ``Университет'' удаляется курс. При этом на него могли ссылаться некоторые
+оценки. Можно поступить несколькими способами:
+
+\begin{itemize}
+	\item Удалить все оценки по курсу. Данный подход называется \textbf{каскадированием изменений} -- изменение
+	      распространяется на зависимые данные;
+	\item Запретить удаление. Данный подход называется \textbf{ограничением изменений}.
+\end{itemize}
+
+Существуют два опасных действия, которые могут затронуть зависимые данные: \textbf{удаление}
+(\texttt{delete}) и
+\textbf{обновление} (\texttt{update}). В SQL поддерживаются следующие типы компенсирующих действий:
+
+\begin{itemize}
+	\item \textbf{Бездействие} (\texttt{no action}). Подразумевается, что в рамках транзакции будут
+	      произведены действия, возвращающие БД в согласованное состояние;
+	\item \textbf{Каскадирование} (\texttt{cascade}). Изменения будут распространены на все
+	      зависимые записи (в том числе не прямо зависимые);
+	\item \textbf{Ограничение} (\texttt{restrict}). При наличии хотя бы одной зависимой записи
+	      удаление или обновление следует запретить;
+	\item \textbf{Обнуление} (\texttt{set null}). Изменить во всех зависимых записях значение на
+	      \texttt{null};
+	\item \textbf{Установка значения по умолчанию} (\texttt{set default}). Аналогично предыдущему,
+	      но устанавливает значение, определенное по умолчанию.
+\end{itemize}
+
+\paragraph{Синтаксис}
+\enewline
+
+\begin{lstlisting}[language=SQL]
+    foreign key (<columns>)
+    references <table> [(<columns>)]
+    [on delete <action>]
+    [on update <action>]
+\end{lstlisting}
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    ...
+    foreign key (CId) references Courses
+    on delete cascade on update cascade;
+    ...
+    foreign key (SId) references Students
+    on delete restrict on update cascade;
+    \end{lstlisting}
+\end{examples}
+
+\begin{remark}
+	Действие по умолчанию -- \texttt{no action}. При нарушении целостности транзакции будут
+	откачены.
+\end{remark}
+
+\subsubsection{Триггеры}
+
+\begin{definition}
+	\textit{Триггер} -- действие, выполняемое при изменении данных. Обычно применяются для
+	обеспечения целостности данных, но в общем случае могут производить любые действия.
+\end{definition}
+
+Возможные применения триггеров:
+
+\begin{itemize}
+	\item Уведомление пользователей,
+	\item Обновления денормализованных данных,
+	\item Аудит изменений,
+	\item Компенсирующие действия.
+\end{itemize}
+
+\paragraph{Синтаксис}
+\enewline
+
+\begin{lstlisting}[language=SQL]
+    create trigger <name> on <object>
+    {before | after | instead of} {insert | update | delete}
+    [<references declaration>]
+    [for each {row | statement}]
+    <action>
+
+    -- references declaration
+    referencing {new | old} {row | table} name
+\end{lstlisting}
+
+Объявление ссылок (\texttt{references declaration}) позволяет сослаться на старую или новую таблицу или
+строку -- в зависимости от выбранной гранулярности триггера (\texttt{for each \{row | statement\}}).
+
+\begin{examples}
+	\enewline
+	\begin{lstlisting}[language=SQL]
+    -- Delete propagation
+    create trigger on Course after delete
+    referencing old row c for each row
+    delete from points p where p.CId = c.CId;
+
+    -- Updates audit
+    create trigger on Points after insert, update
+    referencing new row p
+    for each row set p.time = now()
+    \end{lstlisting}
+\end{examples}
